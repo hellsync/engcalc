@@ -1,25 +1,13 @@
-import React, { useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { InputGroup } from "@blueprintjs/core";
 import katex from 'katex';
-
-
-/* class Unit {
-  constructor(name, abbreviation, isSI = false) {
-    this.name = name;
-    this.abbreviation = abbreviation;
-    this.isSI = isSI;
-  }
-} */
-
-const NUMBER_ABBREVIATION_REGEX = /((\.\d+)|(\d+(\.\d+)?))(k|m|b)\b/gi;
-const SCIENTIFIC_NOTATION_REGEX = /((\.\d+)|(\d+(\.\d+)?))(e\d+)\b/gi;
 
 function KaTeXComponent({texExpression}) {
   const containerRef = useRef();
   useEffect(() => {
     katex.render(texExpression, containerRef.current,
-                {displayMode: false,
-                throwOnError: false});
+                  {displayMode: false,
+                   throwOnError: false});
     }, [texExpression]
   );
 
@@ -28,8 +16,43 @@ function KaTeXComponent({texExpression}) {
 
 //https://github.com/palantir/blueprint/blob/develop/packages/docs-app/src/examples/core-examples/numericInputExtendedExample.tsx
 
-function ValueInputControlRow({variable}) {
-  console.log(variable);
+const parseInput = (inputString, allowableUnits) => {
+  if (inputString.trim() === "") {
+    return {value: null, unitString: null};
+  }
+
+  // Regular expression to match a floating-point number followed by units
+  const regex = /^([\d.]+)\s*([a-zA-Z]*)$/;
+
+  // Try to match the input string against the regex
+  const match = inputString.match(regex);
+
+  if (!match) {
+    // If there is no match, return an error message
+    return {
+      error: "Invalid input format. Please provide a number followed by units.",
+    };
+  }
+
+  // Extract the numeric value and units from the match
+  const numericValue = parseFloat(match[1]);
+  const enteredUnits = match[2];
+
+  if (!allowableUnits.includes(enteredUnits)) {
+    return {
+      error: `Units "${enteredUnits}" are not allowed.`,
+    };
+  }
+
+  // Return the numeric value and units if everything is valid
+  return {
+    value: numericValue,
+    unitString: enteredUnits || "",
+  };
+};
+
+function ValueInputControlRow(props) {
+
   const handleBlur = (event) => {
     handleConfirm(event.target.value);
   };
@@ -40,85 +63,31 @@ function ValueInputControlRow({variable}) {
     }
   };
 
-    const handleValueChange = (value) => {
-      //TODO
-      //setState({value}); 
-    };
+  const handleValueChange = (value) => {
+    //TODO
+    //setState({value}); 
+  };
 
   const handleConfirm = (value) => {
-      let result = value;
-      //result = expandScientificNotationTerms(result);
-      //TODO result = expandNumberAbbreviationTerms(result);
-      //result = evaluateSimpleMathExpression(result);
-      //result = nanStringToEmptyString(result);
-      //TODO setState({ value: result });
-
-      // the user could have typed a different expression that evaluates to
-      // the same value. force the update to ensure a render triggers even if
-      // this is the case.
-      //TODO forceUpdate();
-  };
-
-  const expandScientificNotationTerms = (value) => {
-    // leave empty strings empty
-    if (!value) {
-        return value;
+    const parsed = parseInput(value, props.allowableUnits);
+    if (!parsed.error) {
+      props.onSuccessfulParse(parsed);
+    } else {
+      console.log(parsed.error);
+      console.log(props.allowableUnits);
     }
-    return value.replace(SCIENTIFIC_NOTATION_REGEX, expandScientificNotationNumber);
-  };
-
-/*   const expandNumberAbbreviationTerms = (value) => {
-    // leave empty strings empty
-    if (!value) {
-        return value;
-    }
-    return value.replace(NUMBER_ABBREVIATION_REGEX, expandAbbreviatedNumber);
-  }; */
-
-/*   const expandAbbreviatedNumber = (value) => {
-    if (!value) {
-        return value;
-    }
-
-    const num = +value.substring(0, value.length - 1);
-    const lastChar = value.charAt(value.length - 1).toLowerCase();
-
-    let result;
-
-    if (lastChar === NumberAbbreviation.THOUSAND) {
-        result = num * 1e3;
-    } else if (lastChar === NumberAbbreviation.MILLION) {
-        result = num * 1e6;
-    } else if (lastChar === NumberAbbreviation.BILLION) {
-        result = num * 1e9;
-    }
-
-    const isValid = result != null && !isNaN(result);
-
-    if (isValid) {
-        //result = roundValue(result);
-    }
-
-    return isValid ? result.toString() : "";
-  }; */
-
-  const expandScientificNotationNumber = (value) => {
-    if (!value) {
-        return value;
-    }
-    return (+value).toString();
   };
 
   return (
     <tr>
-      <td><KaTeXComponent texExpression={variable.latex + "="}/></td>
+      <td><KaTeXComponent texExpression={props.latex + "="}/></td>
       <td>
         <InputGroup inputClassName="bp5-monospace-text"
-                    key={"valin"+variable.name}
+                    key={"valin"+props.name}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     onValueChange={handleValueChange}
-                    placeholder="Enter a number or expression..."/>
+                    placeholder=""/>
       </td>
       <td>dfasdf</td>
     </tr>
