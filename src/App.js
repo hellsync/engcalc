@@ -4,6 +4,26 @@ import './App.css';
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Slider, Card, Elevation, FormGroup, NumericInput, InputGroup } from '@blueprintjs/core'
 import { csc, e } from 'mathjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 var mathjs = require("mathjs");
 
 
@@ -135,6 +155,43 @@ class CalcVariable {
   }
 }
 
+function LineChart() {
+  const data = {
+    labels: ['January', 'February', 'March', 'April', 'May'],
+    datasets: [
+      {
+        label: 'Sample Data',
+        data: [10, 20, 30, 40, 50],
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  const options = {
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'Months',
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: 'Values',
+        },
+      },
+    },
+  };
+
+  return (
+    <div>
+      <Line data={data} options={options} />
+    </div>
+  );
+};
+
 function Calculator() {
   const [result, setResult] = useState("?");
   const calculatorVariables = [
@@ -166,7 +223,6 @@ function Calculator() {
     setChildVariables(newChildVariables);
 
   };
-  
 
   const tryCalculating = () => {
     console.log("tryCalculating()");
@@ -218,6 +274,7 @@ function Calculator() {
           ))}
         </tbody></table>
         <p>Result: {result}</p>
+        <LineChart />
       </Card>
     </div>
   );
