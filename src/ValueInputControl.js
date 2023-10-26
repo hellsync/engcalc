@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { InputGroup } from "@blueprintjs/core";
 import katex from 'katex';
 
@@ -96,7 +96,7 @@ function ValueInputControlRow(props) {
           placeholder=""
         />
       </td>
-      <td>dfasdf</td>
+      <td></td>
     </tr>
   )
 }
