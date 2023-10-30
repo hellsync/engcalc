@@ -1,5 +1,5 @@
 import logo from './logo.svg';
-import ValueInputControlRow from './ValueInputControl.js';
+import {ValueInputControlRow, KaTeXComponent} from './ValueInputControl.js';
 import './App.css';
 import React, { useState, useEffect } from 'react';
 import { Button, Slider, Card, Elevation, FormGroup, NumericInput, InputGroup } from '@blueprintjs/core'
@@ -118,7 +118,7 @@ function makeQuantity(SIvalue, unitString) {
 }
 
 class CalcVariable {
-  constructor(name, key, latex, quantityType, defaultUnitString, minValue, maxValue) {
+  constructor(name, key, latex, quantityType, defaultUnitString, minValue, maxValue, initialValue=null, cannedValues=[]) {
     this.name = name;
     this.key = key;
     this.latex = latex;
@@ -127,6 +127,8 @@ class CalcVariable {
     this.defaultUnitString = defaultUnitString;
     this.minValue = minValue;
     this.maxValue = maxValue;
+    this.initialValue = initialValue;
+    this.cannedValues = cannedValues;
   }
 }
 
@@ -165,17 +167,17 @@ function SolutionPlot(props) {
 };
 
 function Calculator() {
-  const [result, setResult] = useState("?");
-
-  const [charts, setCharts] = useState([]);
-  const [chartToDisplay, setChartToDisplay] = useState(null);
+  const [plotData, setPlotData] = useState({});
+  const [simpleResultVariableLatex, setSimpleResultVariableLatex] = useState(null);
+  const [simpleResultQuantity, setSimpleResultQuantity] = useState({value: null, unitString: null});
+  const [resultType, setResultType] = useState(null);
 
   const calculatorVariables = [
     new CalcVariable("impedance", "Z", "Z_0", QuantityType.RESISTANCE, "ohm", 0, 300),
     new CalcVariable("dialectric", "eps", "\\varepsilon_r", QuantityType.UNITLESS, "", 0, 10),
     new CalcVariable("height", "h", "h", QuantityType.LENGTH, "mm", 0.0001, 0.005),
     new CalcVariable("width", "w", "w", QuantityType.LENGTH, "mm", 0.0001, 0.01),
-    new CalcVariable("thickness", "t", "t", QuantityType.LENGTH, "um", 0, 100e-6)
+    new CalcVariable("thickness", "t", "t", QuantityType.LENGTH, "um", 0, 100e-6, "38um", ["18um", "38um"])
   ];
   const initialChildVariables = {};
   for (const cv of calculatorVariables) {
@@ -197,14 +199,7 @@ function Calculator() {
     equations[key] = mathjs.parse(val).compile();
   }
 
-  const configureCharts = (plotKey, xVar, yVar, equation, equationScope) => {
-    const newCharts = {...charts};
-    var chartToConfig = plotKey in newCharts ? newCharts[plotKey] : null;
-    if (chartToConfig === null) {
-      chartToConfig = {};
-      newCharts[plotKey] = chartToConfig;
-    }
-    
+  const computeAndSetPlotData = (xVar, yVar, equation, equationScope) => {
     const xValuesSI = linspace(xVar.minValue, xVar.maxValue, 100);
     const xValues = [];
     const yValues = [];
@@ -218,21 +213,21 @@ function Calculator() {
       xValues.push(xValue);
     }
     
-    chartToConfig.key = plotKey;
-    chartToConfig.xValues = xValues;
-    chartToConfig.yValues = yValues;
-    chartToConfig.xUnits = xVar.defaultUnitString;
-    chartToConfig.yUnits = yVar.defaultUnitString;
-    chartToConfig.xTitle = xVar.name + ", " + xVar.key;
-    chartToConfig.yTitle = yVar.name + ", " + yVar.key;
-    setCharts(newCharts);
+    setPlotData(
+      {key: xVar.defaultUnitString + yVar.defaultUnitString,
+      xValues: xValues,
+      yValues: yValues,
+      xUnits: xVar.defaultUnitString,
+      yUnits: yVar.defaultUnitString,
+      xTitle: xVar.name + ", " + xVar.key,
+      yTitle: yVar.name + ", " + yVar.key}
+    );
   }
 
   const updateChildQuantity = (key, physicalQuantity) => {
     const newChildVariables = {...childVariables}; // a copy
     newChildVariables[key] = physicalQuantity;
     setChildVariables(newChildVariables);
-
   };
 
   const tryCalculating = () => {
@@ -251,34 +246,35 @@ function Calculator() {
       case 1:
         console.log("one unknown :)");
         const unknownKey = Object.keys(unknowns)[0];
+        const unknownVariable = calculatorVariables.find(cv => cv.key === unknownKey);
         const SIresult = equations[unknownKey].evaluate({...knowns});
 
-        const resultUnitString = calculatorVariables.find(cv => cv.key === unknownKey).defaultUnitString;
+        const resultUnitString = unknownVariable.defaultUnitString;
         const resultQuantity = makeQuantity(SIresult, resultUnitString);
         console.log(resultQuantity);
-        setResult(`${resultQuantity.value} ${resultQuantity.unitString}`);
-        setChartToDisplay(null);
+
+        
+        setSimpleResultQuantity(resultQuantity);
+        setSimpleResultVariableLatex(unknownVariable.latex)
+        setResultType("simple");
         break;
       
       case 2:
         console.log("two unknowns :)");
         const xVarKey = Object.keys(unknowns)[0];
         const yVarKey = Object.keys(unknowns)[1];
-        const plotKey =  xVarKey + yVarKey;
-        configureCharts(
-          plotKey,
+        computeAndSetPlotData(
           calculatorVariables.find(cv => cv.key === xVarKey),
           calculatorVariables.find(cv => cv.key === yVarKey),
           equations[yVarKey],
           {...knowns}
         );
-        setChartToDisplay(plotKey);
+        setResultType("plot");
         break;
 
       default:
         console.log(`n_unknowns = ${Object.keys(unknowns).length} :(`);
-        setResult("?");
-        setChartToDisplay(null);
+        setResultType(null);
     }
   };
   
@@ -296,21 +292,34 @@ function Calculator() {
               name={variable.name}
               latex={variable.latex}
               allowableUnits={variable.allowableUnits}
+              initialValue={variable.initialValue}
+              cannedValues={variable.cannedValues}
               onSuccessfulParse={(physicalQuantity) => updateChildQuantity(variable.key, physicalQuantity)}
             />
           ))}
         </tbody></table>
-        <p>Result: {result}</p>
         <div>
-        {chartToDisplay !== null && chartToDisplay in charts ? (
+        {resultType === "simple" ?
+          <p>
+            <KaTeXComponent
+              texExpression={
+                simpleResultVariableLatex + " = " + 
+                simpleResultQuantity.value.toPrecision(4) + " " +
+                simpleResultQuantity.unitString}
+            />
+          </p>
+        :
+          null
+        }
+        {resultType === "plot" ? (
           <SolutionPlot
-            key={charts[chartToDisplay].key}
-            xTitle={charts[chartToDisplay].xTitle}
-            yTitle={charts[chartToDisplay].yTitle}
-            xValues={charts[chartToDisplay].xValues}
-            yValues={charts[chartToDisplay].yValues}
-            xUnits={charts[chartToDisplay].xUnits}
-            yUnits={charts[chartToDisplay].yUnits}
+            key={plotData.key}
+            xTitle={plotData.xTitle}
+            yTitle={plotData.yTitle}
+            xValues={plotData.xValues}
+            yValues={plotData.yValues}
+            xUnits={plotData.xUnits}
+            yUnits={plotData.yUnits}
           />
         ) : null}
         </div>

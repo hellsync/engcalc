@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { InputGroup } from "@blueprintjs/core";
+import { InputGroup, Button } from "@blueprintjs/core";
 import katex from 'katex';
+import { map } from "mathjs";
 
 function KaTeXComponent({texExpression}) {
   const containerRef = useRef();
@@ -19,6 +20,7 @@ function KaTeXComponent({texExpression}) {
 
 function ValueInputControlRow(props) {
   const [intent, setIntent] = useState("none");
+  const [value, setValue] = useState(props.initialValue || "");
 
   const parseInput = (inputString, allowableUnits) => {
     if (inputString.trim() === "") {
@@ -66,8 +68,7 @@ function ValueInputControlRow(props) {
   };
 
   const handleValueChange = (value) => {
-    //TODO
-    //setState({value}); 
+    setValue(value);
   };
 
   const handleConfirm = (target) => {
@@ -88,11 +89,17 @@ function ValueInputControlRow(props) {
       <td>
         <InputGroup
           inputClassName="bp5-monospace-text"
+          value={value}
           key={"valin"+props.name}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onValueChange={handleValueChange}
           intent={intent}
+          rightElement={
+            props.cannedValues.map((val) => (
+              <Button text={val} onClick={() => setValue(val)} />
+            ))
+          }
           placeholder=""
         />
       </td>
@@ -101,4 +108,4 @@ function ValueInputControlRow(props) {
   )
 }
 
-export default ValueInputControlRow;
+export {ValueInputControlRow, KaTeXComponent};
