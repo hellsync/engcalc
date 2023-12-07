@@ -7,6 +7,29 @@
   margin: 10em;
 }
 
+.inputs-and-image {
+  display: flex; /* Enables Flexbox */
+  align-items: center; /* Align items vertically */
+  justify-content: space-between; /* Spacing between table and image */
+}
+
+.calculator-image {
+  max-width: 400px; /* Adjust as needed */
+  height: auto; /* Maintain aspect ratio */
+  margin-left: 20px; /* Space between table and image */
+}
+
+@media (max-width: 600px) { /* Adjust breakpoint as needed */
+  .inputs-and-image {
+    flex-direction: column;
+  }
+
+  .calculator-image {
+    margin-left: 0;
+    margin-top: 20px;
+  }
+}
+
 /* .katex-container {
   max-width: 10em;
 }*/
