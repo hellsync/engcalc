@@ -397,6 +397,20 @@ function App() {
           "f": "f = X_L / (2 * 3.1415 * L)",
         }}
       />
+      <Calculator
+        name="lc-resonance"
+        imageUrl={""}
+        imageAlt={"LC Resonance"}
+        variables={[
+          new CalcVariable("capacitance", "C", "C", QuantityType.CAPACITANCE, "F", 0, 1e-3),
+          new CalcVariable("inductance", "L", "L", QuantityType.INDUCTANCE, "H", 0, 1e-3),
+          new CalcVariable("frequency", "f", "f", QuantityType.FREQUENCY, "Hz", 0, ) ]}
+        equations={{
+          "C": "C = 1 / (4 * (3.1415 ^ 2) * (f ^ 2) * L)",
+          "L": "C = 1 / (4 * (3.1415 ^ 2) * (f ^ 2) * C)",
+          "f": "f = 1 / (2 * 3.1415 * sqrt(L * C))",
+        }}
+      />
     </div>
   );
 }

@@ -22,6 +22,13 @@ function ValueInputControlRow(props) {
   const [intent, setIntent] = useState("none");
   const [value, setValue] = useState(props.initialValue || "");
 
+  // force a parse if this has a default value
+  useEffect(() => {
+    if (props.initialValue) {
+      handleConfirm({ value: props.initialValue });
+    }
+  }, [props.initialValue]);
+
   const parseInput = (inputString, allowableUnits) => {
     if (inputString.trim() === "") {
       return {value: null, unitString: null};
@@ -97,7 +104,13 @@ function ValueInputControlRow(props) {
           intent={intent}
           rightElement={
             props.cannedValues.map((val) => (
-              <Button text={val} onClick={() => setValue(val)} />
+              <Button
+                key={val}
+                text={val}
+                onClick={() => {
+                  setValue(val);
+                  handleConfirm({value: val})
+                }} />
             ))
           }
           placeholder=""
